@@ -17,7 +17,7 @@ import (
 /*
  * @Author: Rouzip
  * @Date: 2020-12-11 23:22:32
- * @LastEditTime: 2020-12-12 21:32:50
+ * @LastEditTime: 2020-12-13 00:22:20
  * @LastEditors: Rouzip
  * @Description: My blog webhook server
  */
@@ -57,7 +57,7 @@ func getEnv(jsonStr map[string]interface{}, key string) string {
 }
 
 func loadConfPath() *string {
-	return flag.String("f", "env.conf", "the config of the webhook")
+	return flag.String("c", "env.conf", "the config of the webhook")
 }
 
 func getJSON() map[string]interface{} {
