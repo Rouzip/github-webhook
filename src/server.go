@@ -17,7 +17,7 @@ import (
 /*
  * @Author: Rouzip
  * @Date: 2020-12-11 23:22:32
- * @LastEditTime: 2020-12-12 21:03:08
+ * @LastEditTime: 2020-12-12 21:31:41
  * @LastEditors: Rouzip
  * @Description: My blog webhook server
  */
@@ -95,11 +95,20 @@ func main() {
 			decoder.Decode(gitDetail)
 
 			cmd := exec.Command("/bin/sh", "-c", "cd /tmp; git clone "+gitDetail.Respo.CloneURL+";")
-			cmd.Run()
+			err := cmd.Run()
+			if err != nil {
+				fmt.Println(err)
+			}
 			cmd = exec.Command("/bin/sh", "-c", "mv /tmp/"+gitDetail.Respo.Name+"/md/* "+blogIndex+"/content/post")
-			cmd.Run()
+			err = cmd.Run()
+			if err != nil {
+				fmt.Println(err)
+			}
 			cmd = exec.Command("/bin/sh", "-c", "mv /tmp/"+gitDetail.Respo.Name+"/img/* "+blogIndex+"/static")
-			cmd.Run()
+			err = cmd.Run()
+			if err != nil {
+				fmt.Println(err)
+			}
 			cmd = exec.Command("/bin/sh", "-c", "cd "+blogIndex+";rm -rf public;hugo;")
 			w.WriteHeader(200)
 		} else {
