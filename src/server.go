@@ -17,7 +17,7 @@ import (
 /*
  * @Author: Rouzip
  * @Date: 2020-12-11 23:22:32
- * @LastEditTime: 2020-12-12 21:31:41
+ * @LastEditTime: 2020-12-12 21:32:50
  * @LastEditors: Rouzip
  * @Description: My blog webhook server
  */
@@ -85,6 +85,7 @@ func main() {
 	envJSON := getJSON()
 	key := getEnv(envJSON, "KEY")
 	blogIndex := getEnv(envJSON, "PATH")
+	PORT := getEnv(envJSON, "PORT")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
 
@@ -115,5 +116,5 @@ func main() {
 			w.WriteHeader(403)
 		}
 	})
-	http.ListenAndServe("0.0.0.0:7878", mux)
+	http.ListenAndServe("0.0.0.0:"+PORT, mux)
 }
