@@ -17,7 +17,7 @@ import (
 /*
  * @Author: Rouzip
  * @Date: 2020-12-11 23:22:32
- * @LastEditTime: 2020-12-14 00:50:01
+ * @LastEditTime: 2020-12-14 00:54:29
  * @LastEditors: Rouzip
  * @Description: My blog webhook server
  */
@@ -94,6 +94,8 @@ func main() {
 			decoder := json.NewDecoder(r.Body)
 			gitDetail := &GitRepo{}
 			decoder.Decode(gitDetail)
+			// TODO: rm err log
+			fmt.Println(gitDetail)
 
 			cmd := exec.Command("/bin/sh", "-c", "cd /tmp; git clone "+gitDetail.Respo.CloneURL+";")
 			err := cmd.Run()
