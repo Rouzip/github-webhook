@@ -17,14 +17,14 @@ import (
 /*
  * @Author: Rouzip
  * @Date: 2020-12-11 23:22:32
- * @LastEditTime: 2020-12-13 00:22:20
+ * @LastEditTime: 2020-12-14 00:50:01
  * @LastEditors: Rouzip
  * @Description: My blog webhook server
  */
 
 // GitRepo the detail of the git repo
 type GitRepo struct {
-	Respo GitName
+	Respo GitName `json:"repository"`
 }
 
 // GitName url and the name of the repo
