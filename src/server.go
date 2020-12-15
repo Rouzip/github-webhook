@@ -17,7 +17,7 @@ import (
 /*
  * @Author: Rouzip
  * @Date: 2020-12-11 23:22:32
- * @LastEditTime: 2020-12-15 14:17:49
+ * @LastEditTime: 2020-12-15 14:25:15
  * @LastEditors: Rouzip
  * @Description: My blog webhook server
  */
@@ -31,7 +31,7 @@ func readFile(name string) ([]byte, error) {
 }
 
 func loadConfPath() *string {
-	return flag.String("c", "env.conf", "the config of the webhook")
+	return flag.String("c", "/etc/blogServer/env.conf", "the config of the webhook")
 }
 
 func checkSum(key, sign string, data []byte) bool {
@@ -65,7 +65,13 @@ func main() {
 			gitURL := strings.TrimSpace(gjson.Get(bodyStr, "repository.clone_url").String())
 			name := strings.TrimSpace(gjson.Get(bodyStr, "repository.name").String())
 
-			output, err := exec.Command("/bin/sh", "-c", "cd /tmp; git clone "+gitURL+";").CombinedOutput()
+			output, err := exec.Command("/bin/sh", "-c", "rm -rf /tmp/"+name).CombinedOutput()
+			if err != nil {
+				fmt.Println("Error when running command.  Output:")
+				fmt.Println(string(output))
+				fmt.Printf("Got command status: %s\n", err.Error())
+			}
+			output, err = exec.Command("/bin/sh", "-c", "cd /tmp; git clone "+gitURL+" "+name+";").CombinedOutput()
 			if err != nil {
 				fmt.Println("Error when running command.  Output:")
 				fmt.Println(string(output))
