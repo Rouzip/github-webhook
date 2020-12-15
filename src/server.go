@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	"github.com/tidwall/gjson"
 )
@@ -16,7 +17,7 @@ import (
 /*
  * @Author: Rouzip
  * @Date: 2020-12-11 23:22:32
- * @LastEditTime: 2020-12-15 10:15:19
+ * @LastEditTime: 2020-12-15 14:04:26
  * @LastEditors: Rouzip
  * @Description: My blog webhook server
  */
@@ -47,7 +48,7 @@ func main() {
 	}
 	confStr := string(confBytes)
 	key := gjson.Get(confStr, "KEY")
-	blogIndex := gjson.Get(confStr, "PATH")
+	blogIndex := strings.TrimSpace(gjson.Get(confStr, "PATH").String())
 	port := gjson.Get(confStr, "PORT")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
@@ -61,25 +62,25 @@ func main() {
 		}
 		if checkSum(key.String(), sign, bodyBytes) {
 			bodyStr := string(bodyBytes)
-			gitURL := gjson.Get(bodyStr, "repository.clone_url")
-			name := gjson.Get(bodyStr, "repository.name")
+			gitURL := strings.TrimSpace(gjson.Get(bodyStr, "repository.clone_url").String())
+			name := strings.TrimSpace(gjson.Get(bodyStr, "repository.name").String())
 
-			cmd := exec.Command("/bin/sh", "-c", "cd /tmp; git clone "+gitURL.String()+";")
+			cmd := exec.Command("/bin/sh", "-c", "cd /tmp; git clone "+gitURL+";")
 			err = cmd.Run()
 			if err != nil {
 				fmt.Println(err)
 			}
-			cmd = exec.Command("/bin/sh", "-c", "mv /tmp/"+name.String()+"/md/* "+blogIndex.String()+"/content/post")
+			cmd = exec.Command("/bin/sh", "-c", "mv /tmp/"+name+"/md/* "+blogIndex+"/content/post")
 			err = cmd.Run()
 			if err != nil {
 				fmt.Println(err)
 			}
-			cmd = exec.Command("/bin/sh", "-c", "mv /tmp/"+name.String()+"/img/* "+blogIndex.String()+"/static")
+			cmd = exec.Command("/bin/sh", "-c", "mv /tmp/"+name+"/img/* "+blogIndex+"/static")
 			err = cmd.Run()
 			if err != nil {
 				fmt.Println(err)
 			}
-			cmd = exec.Command("/bin/sh", "-c", "cd "+blogIndex.String()+";rm -rf public;hugo;")
+			cmd = exec.Command("/bin/sh", "-c", "cd "+blogIndex+";rm -rf public;hugo;")
 			w.WriteHeader(200)
 		} else {
 			w.WriteHeader(403)
