@@ -1,37 +1,26 @@
 package main
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/hex"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
+
+	"github.com/tidwall/gjson"
 )
 
 /*
  * @Author: Rouzip
  * @Date: 2020-12-11 23:22:32
- * @LastEditTime: 2020-12-14 00:54:29
+ * @LastEditTime: 2020-12-15 01:03:36
  * @LastEditors: Rouzip
  * @Description: My blog webhook server
  */
-
-// GitRepo the detail of the git repo
-type GitRepo struct {
-	Respo GitName `json:"repository"`
-}
-
-// GitName url and the name of the repo
-type GitName struct {
-	CloneURL string `json:"clone_url"`
-	Name     string `json:"name"`
-}
 
 func readFile(name string) ([]byte, error) {
 	data, err := ioutil.ReadFile(name)
@@ -41,34 +30,8 @@ func readFile(name string) ([]byte, error) {
 	return data, err
 }
 
-func parseJSONStr(data []byte) map[string]interface{} {
-	dataMap := make(map[string]interface{})
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.Decode(&dataMap)
-	return dataMap
-}
-
-func getEnv(jsonStr map[string]interface{}, key string) string {
-	if str, ok := jsonStr[key]; ok {
-		return str.(string)
-	}
-	panic("invalid value")
-
-}
-
 func loadConfPath() *string {
 	return flag.String("c", "env.conf", "the config of the webhook")
-}
-
-func getJSON() map[string]interface{} {
-	path := loadConfPath()
-	if path == nil {
-		panic("path is invalid!")
-	}
-	if data, err := readFile(*path); err == nil {
-		return parseJSONStr(data)
-	}
-	return nil
 }
 
 func checkSum(key, sign string, data io.ReadCloser) bool {
@@ -82,41 +45,48 @@ func checkSum(key, sign string, data io.ReadCloser) bool {
 }
 
 func main() {
-	envJSON := getJSON()
-	key := getEnv(envJSON, "KEY")
-	blogIndex := getEnv(envJSON, "PATH")
-	PORT := getEnv(envJSON, "PORT")
+	path := loadConfPath()
+	confBytes, err := readFile(*path)
+	if err != nil {
+		fmt.Println(err)
+	}
+	confStr := string(confBytes)
+	key := gjson.Get(confStr, "KEY")
+	blogIndex := gjson.Get(confStr, "PATH")
+	port := gjson.Get(confStr, "PORT")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
 
 		sign := r.Header.Get("x-hub-signature")
-		if checkSum(key, sign, r.Body) {
-			decoder := json.NewDecoder(r.Body)
-			gitDetail := &GitRepo{}
-			decoder.Decode(gitDetail)
-			// TODO: rm err log
-			fmt.Println(gitDetail)
+		if checkSum(key.String(), sign, r.Body) {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				fmt.Println(err)
+			}
+			bodyStr := string(body)
+			gitURL := gjson.Get(bodyStr, "repository.clone_url")
+			name := gjson.Get(bodyStr, "repository.name")
 
-			cmd := exec.Command("/bin/sh", "-c", "cd /tmp; git clone "+gitDetail.Respo.CloneURL+";")
-			err := cmd.Run()
-			if err != nil {
-				fmt.Println(err)
-			}
-			cmd = exec.Command("/bin/sh", "-c", "mv /tmp/"+gitDetail.Respo.Name+"/md/* "+blogIndex+"/content/post")
+			cmd := exec.Command("/bin/sh", "-c", "cd /tmp; git clone "+gitURL.String()+";")
 			err = cmd.Run()
 			if err != nil {
 				fmt.Println(err)
 			}
-			cmd = exec.Command("/bin/sh", "-c", "mv /tmp/"+gitDetail.Respo.Name+"/img/* "+blogIndex+"/static")
+			cmd = exec.Command("/bin/sh", "-c", "mv /tmp/"+name.String()+"/md/* "+blogIndex.String()+"/content/post")
 			err = cmd.Run()
 			if err != nil {
 				fmt.Println(err)
 			}
-			cmd = exec.Command("/bin/sh", "-c", "cd "+blogIndex+";rm -rf public;hugo;")
+			cmd = exec.Command("/bin/sh", "-c", "mv /tmp/"+name.String()+"/img/* "+blogIndex.String()+"/static")
+			err = cmd.Run()
+			if err != nil {
+				fmt.Println(err)
+			}
+			cmd = exec.Command("/bin/sh", "-c", "cd "+blogIndex.String()+";rm -rf public;hugo;")
 			w.WriteHeader(200)
 		} else {
 			w.WriteHeader(403)
 		}
 	})
-	http.ListenAndServe("0.0.0.0:"+PORT, mux)
+	http.ListenAndServe("0.0.0.0:"+port.String(), mux)
 }
