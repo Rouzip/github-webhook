@@ -16,7 +16,7 @@ import (
 /*
  * @Author: Rouzip
  * @Date: 2020-12-11 23:22:32
- * @LastEditTime: 2020-12-15 10:09:36
+ * @LastEditTime: 2020-12-15 10:15:19
  * @LastEditors: Rouzip
  * @Description: My blog webhook server
  */
@@ -53,12 +53,12 @@ func main() {
 	mux.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
 		sign := r.Header.Get("x-hub-signature")
 		bodyBytes, err := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
 		if err != nil {
 			fmt.Println(err)
 			w.WriteHeader(500)
 			return
 		}
-		r.Body.Close()
 		if checkSum(key.String(), sign, bodyBytes) {
 			bodyStr := string(bodyBytes)
 			gitURL := gjson.Get(bodyStr, "repository.clone_url")
