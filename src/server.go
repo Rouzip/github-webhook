@@ -17,7 +17,7 @@ import (
 /*
  * @Author: Rouzip
  * @Date: 2020-12-11 23:22:32
- * @LastEditTime: 2020-12-15 14:04:26
+ * @LastEditTime: 2020-12-15 14:17:49
  * @LastEditors: Rouzip
  * @Description: My blog webhook server
  */
@@ -65,22 +65,30 @@ func main() {
 			gitURL := strings.TrimSpace(gjson.Get(bodyStr, "repository.clone_url").String())
 			name := strings.TrimSpace(gjson.Get(bodyStr, "repository.name").String())
 
-			cmd := exec.Command("/bin/sh", "-c", "cd /tmp; git clone "+gitURL+";")
-			err = cmd.Run()
+			output, err := exec.Command("/bin/sh", "-c", "cd /tmp; git clone "+gitURL+";").CombinedOutput()
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println("Error when running command.  Output:")
+				fmt.Println(string(output))
+				fmt.Printf("Got command status: %s\n", err.Error())
 			}
-			cmd = exec.Command("/bin/sh", "-c", "mv /tmp/"+name+"/md/* "+blogIndex+"/content/post")
-			err = cmd.Run()
+			output, err = exec.Command("/bin/sh", "-c", "mv /tmp/"+name+"/md/* "+blogIndex+"/content/post").CombinedOutput()
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println("Error when running command.  Output:")
+				fmt.Println(string(output))
+				fmt.Printf("Got command status: %s\n", err.Error())
 			}
-			cmd = exec.Command("/bin/sh", "-c", "mv /tmp/"+name+"/img/* "+blogIndex+"/static")
-			err = cmd.Run()
+			output, err = exec.Command("/bin/sh", "-c", "mv /tmp/"+name+"/img/* "+blogIndex+"/static").CombinedOutput()
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println("Error when running command.  Output:")
+				fmt.Println(string(output))
+				fmt.Printf("Got command status: %s\n", err.Error())
 			}
-			cmd = exec.Command("/bin/sh", "-c", "cd "+blogIndex+";rm -rf public;hugo;")
+			output, err = exec.Command("/bin/sh", "-c", "cd "+blogIndex+";rm -rf public;hugo;").CombinedOutput()
+			if err != nil {
+				fmt.Println("Error when running command.  Output:")
+				fmt.Println(string(output))
+				fmt.Printf("Got command status: %s\n", err.Error())
+			}
 			w.WriteHeader(200)
 		} else {
 			w.WriteHeader(403)
