@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -17,7 +16,7 @@ import (
 /*
  * @Author: Rouzip
  * @Date: 2020-12-11 23:22:32
- * @LastEditTime: 2020-12-15 01:03:36
+ * @LastEditTime: 2020-12-15 10:09:36
  * @LastEditors: Rouzip
  * @Description: My blog webhook server
  */
@@ -34,13 +33,9 @@ func loadConfPath() *string {
 	return flag.String("c", "env.conf", "the config of the webhook")
 }
 
-func checkSum(key, sign string, data io.ReadCloser) bool {
+func checkSum(key, sign string, data []byte) bool {
 	h := hmac.New(sha1.New, []byte(key))
-	body, err := ioutil.ReadAll(data)
-	if err != nil {
-		fmt.Println(err)
-	}
-	h.Write(body)
+	h.Write(data)
 	return hex.EncodeToString(h.Sum(nil)) == sign[5:]
 }
 
@@ -56,14 +51,16 @@ func main() {
 	port := gjson.Get(confStr, "PORT")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/webhook", func(w http.ResponseWriter, r *http.Request) {
-
 		sign := r.Header.Get("x-hub-signature")
-		if checkSum(key.String(), sign, r.Body) {
-			body, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				fmt.Println(err)
-			}
-			bodyStr := string(body)
+		bodyBytes, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			fmt.Println(err)
+			w.WriteHeader(500)
+			return
+		}
+		r.Body.Close()
+		if checkSum(key.String(), sign, bodyBytes) {
+			bodyStr := string(bodyBytes)
 			gitURL := gjson.Get(bodyStr, "repository.clone_url")
 			name := gjson.Get(bodyStr, "repository.name")
 
